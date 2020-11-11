@@ -7,7 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
 # importer les identifiants
-from config import email, password, message, mot_cle, PROXY
+from config import *
 
 
 # assurer que le press papier est vide
@@ -57,9 +57,9 @@ class Linkedin:
 		userChamp = self.chrome.find_element_by_id('session_key')
 		passwordChamp = self.chrome.find_element_by_id('session_password')
 		loginBouton = self.chrome.find_element_by_class_name("sign-in-form__submit-button")
-
+		time.sleep(1)
 		userChamp.send_keys(email)
-		time.sleep(2)
+		time.sleep(1)
 		passwordChamp.send_keys(password)
 		time.sleep(1)
 		loginBouton.click()
@@ -84,10 +84,10 @@ class Linkedin:
 		
 
 
-	def send_message_result(self, elements, message):
+	def send_message_result(self, elements, message, temps):
 		for block in elements:
 			btn = block.find_element_by_tag_name('button')
-			if btn.text.strip == "En attente": continue
+			if btn.text.strip() == "En attente": continue
 			link = block.find_element_by_tag_name('a')
 			username = link.get_property('href').split('/')[-1] 
 			
@@ -104,24 +104,25 @@ class Linkedin:
 				time.sleep(2)
 				new_message = "Bonjour ,\n" + message
 				textarea = self.chrome.find_element_by_id('custom-message')
-				textarea.send_keys(message)
+				textarea.send_keys(new_message)
 
 				time.sleep(3)
 				send.click()
 
-				time.sleep(6)
+				self.insertName(username, message)
+				time.sleep(temps)
 
 		print("tapitra ve? " + str(len(elements)))
 
 
-	def insertName(self, username, mot_cle):
+	def insertName(self, username, message):
 		db = sqlite3.connect("__bot.db")
 		cursor = db.cursor()
 
 		cursor.execute("""
-			INSERT INTO Cible (utilisateur, mot_cle)
+			INSERT INTO Cible (utilisateur, message)
 			VALUES (?, ?)
-		""", (username, mot_cle))
+		""", (username, message))
 		db.commit()
 		db.close()
 
@@ -154,4 +155,4 @@ if __name__ == "__main__":
 	res = linkedin.recherche(mot_cle, personne=True)
 
 	# envoyer message aux resultat
-	linkedin.send_message_result(res, message)
+	linkedin.send_message_result(res, message, interval_temps)
