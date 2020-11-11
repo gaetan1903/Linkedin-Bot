@@ -1,4 +1,4 @@
-import os, time, urllib.parse
+import os, time, urllib.parse, sqlite3
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
@@ -7,7 +7,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
 # importer les identifiants
-from config import email, password, PROXY
+from config import email, password, message, mot_cle, PROXY
 
 
 # assurer que le press papier est vide
@@ -15,12 +15,13 @@ from config import email, password, PROXY
 # passwordChamp.clear()
 
 
+
+
 class Linkedin:
-	def __init__(self, email, password, proxy):
-		self.email = email
-		self.password = password 
+	def __init__(self, proxy):
 		self.proxy = proxy
 		self.config()
+		self._initDb()
 
 
 	def config(self):
@@ -29,9 +30,27 @@ class Linkedin:
 		if self.proxy: 
 			options.add_argument(f'--proxy-server={self.proxy}')
 		self.chrome = webdriver.Chrome(os.path.abspath('driver\\chromedriver.exe'), options=options)
+		self.chrome.maximize_window()
 
 
-	def login(self):
+	def _initDb(self):
+		db = sqlite3.connect("__bot.db")
+		cursor = db.cursor()
+
+		cursor.execute("""
+			CREATE TABLE IF NOT EXISTS Cible 
+			(
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				utilisateur TEXT,
+				message TEXT 
+			)
+		""")
+
+		db.commit()
+		db.close()
+
+
+	def login(self, email, password):
 		self.chrome.get('https://www.linkedin.com')
 
 		# ciblage des champs necessaire
@@ -40,8 +59,9 @@ class Linkedin:
 		loginBouton = self.chrome.find_element_by_class_name("sign-in-form__submit-button")
 
 		userChamp.send_keys(email)
+		time.sleep(2)
 		passwordChamp.send_keys(password)
-
+		time.sleep(1)
 		loginBouton.click()
 
 
@@ -57,16 +77,81 @@ class Linkedin:
 		
 		url = f"https://www.linkedin.com/search/results/{type_}/?keywords={query}&origin=SWITCH_SEARCH_VERTICAL"
 		self.chrome.get(url)
+		time.sleep(3)
 
-		elements = self.chrome.find_elements_by_class_name("search-result")
-
-		return elements
-
-
-	def close(self): self.chrome.close()
+		section = self.chrome.find_element_by_class_name("search-results-page")
+		return section.find_elements_by_tag_name("li")
+		
 
 
+	def send_message_result(self, elements, message):
+		for block in elements:
+			btn = block.find_element_by_tag_name('button')
+			if btn.text.strip == "En attente": continue
+			link = block.find_element_by_tag_name('a')
+			username = link.get_property('href').split('/')[-1] 
+			
+			if self.verifName(username, message):
+				elem = self.chrome.switch_to.active_element
+				btn.click()
+				time.sleep(2)
+				for n in elem.find_elements_by_tag_name('button'):
+					if n.text.strip() == "Ajouter une note":
+						note = n 
+					if n.text.strip() == "Envoyer":
+						send = n
+				note.click() 
+				time.sleep(2)
+				new_message = "Bonjour ,\n" + message
+				textarea = self.chrome.find_element_by_id('custom-message')
+				textarea.send_keys(message)
 
-linkedin = Linkedin(email, password, PROXY)
-linkedin.login()
-res = linkedin.recherche("directeur technique", personne=True)
+				time.sleep(3)
+				send.click()
+
+				time.sleep(6)
+
+		print("tapitra ve? " + str(len(elements)))
+
+
+	def insertName(self, username, mot_cle):
+		db = sqlite3.connect("__bot.db")
+		cursor = db.cursor()
+
+		cursor.execute("""
+			INSERT INTO Cible (utilisateur, mot_cle)
+			VALUES (?, ?)
+		""", (username, mot_cle))
+		db.commit()
+		db.close()
+
+
+	def verifName(self, username, message):
+		db = sqlite3.connect("__bot.db")
+		cursor = db.cursor()
+		cursor.execute("""
+			SELECT 1
+			FROM Cible 
+			WHERE utilisateur = ?
+			AND message = ?
+		""", (username, message))
+
+		res = cursor.fetchall()
+		db.close()
+
+		return True if len(res) == 0 else False 
+
+
+if __name__ == "__main__":
+
+	# initialiser un bot linkedin
+	linkedin = Linkedin(PROXY)
+
+	# se connecter
+	linkedin.login(email, password)
+
+	# rechercher
+	res = linkedin.recherche(mot_cle, personne=True)
+
+	# envoyer message aux resultat
+	linkedin.send_message_result(res, message)
