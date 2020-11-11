@@ -1,4 +1,4 @@
-import os, time, urllib.parse, sqlite3
+import os, re, time, urllib.parse, sqlite3
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
@@ -89,7 +89,7 @@ class Linkedin:
 			btn = block.find_element_by_tag_name('button')
 			if btn.text.strip() == "En attente": continue
 			link = block.find_element_by_tag_name('a')
-			username = link.get_property('href').split('/')[-1] 
+			username = urllib.parse.unquote(link.get_property('href').split('/')[-1])
 			
 			if self.verifName(username, message):
 				elem = self.chrome.switch_to.active_element
@@ -102,7 +102,8 @@ class Linkedin:
 						send = n
 				note.click() 
 				time.sleep(2)
-				new_message = "Bonjour ,\n" + message
+
+				new_message = f"Bonjour {self.getName(username)},\n" + message
 				textarea = self.chrome.find_element_by_id('custom-message')
 				textarea.send_keys(new_message)
 
@@ -112,7 +113,6 @@ class Linkedin:
 				self.insertName(username, message)
 				time.sleep(temps)
 
-		print("tapitra ve? " + str(len(elements)))
 
 
 	def insertName(self, username, message):
@@ -140,7 +140,18 @@ class Linkedin:
 		res = cursor.fetchall()
 		db.close()
 
-		return True if len(res) == 0 else False 
+		return True if len(res) == 0 else False
+
+
+	@classmethod
+	def getName(self, username):
+		_nom = username.split('-')
+		nom = ""
+		for __nom in _nom:
+			if re.match(r'^[a-z]+$', __nom):
+				nom = nom + " " +__nom.capitalize()
+		return nom
+
 
 
 if __name__ == "__main__":
