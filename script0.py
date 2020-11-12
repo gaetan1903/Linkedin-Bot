@@ -10,18 +10,13 @@ from selenium.webdriver.common.by import By
 from config import *
 
 
-# assurer que le press papier est vide
-# userChamp.clear()
-# passwordChamp.clear()
-
-
 
 class Linkedin:
 	def __init__(self, proxy=None):
 		self.proxy = proxy
 		self.config()
 		self._initDb()
-		self.logName = datetime.datetime.now().strftime("%Y%M%d_%H%m%S")
+		self.logName = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 		# create file 
 		with open("log/"+self.logName+".txt", "w"): pass  
 
@@ -60,7 +55,6 @@ class Linkedin:
 
 
 
-
 	def login(self, email, password):
 		self.chrome.get('https://www.linkedin.com')
 
@@ -86,7 +80,11 @@ class Linkedin:
 		else:
 			type_ = "all"
 		
-		url = f"https://www.linkedin.com/search/results/{type_}/?keywords={query}&origin=SWITCH_SEARCH_VERTICAL"
+		reg = ""
+		if filtre.get("ville"):
+			if len(filtre.get("ville"))>0:
+				reg = "geoUrn=" + urllib.parse.quote(filtre.get("ville")) + "&"
+		url = f"https://www.linkedin.com/search/results/{type_}/?{reg}keywords={query}&origin=SWITCH_SEARCH_VERTICAL"
 		self.chrome.get(url)
 		time.sleep(3)
 
@@ -97,32 +95,39 @@ class Linkedin:
 
 	def send_message_result(self, elements, message, temps):
 		for block in elements:
-			btn = block.find_element_by_tag_name('button')
-			if btn.text.strip() == "En attente": continue
-			link = block.find_element_by_tag_name('a')
-			username = urllib.parse.unquote(link.get_property('href').split('/')[-1])
-			
-			if self.verifName(username, message):
-				elem = self.chrome.switch_to.active_element
-				btn.click()
-				time.sleep(2)
-				for n in elem.find_elements_by_tag_name('button'):
-					if n.text.strip() == "Ajouter une note":
-						note = n 
-					if n.text.strip() == "Envoyer":
-						send = n
-				note.click() 
-				time.sleep(2)
+			try:
+				btn = block.find_element_by_tag_name('button')
+				if btn.text.strip() == "En attente": continue
+				link = block.find_element_by_tag_name('a')
+				username = urllib.parse.unquote(link.get_property('href').split('/')[-1])
+				
+				if self.verifName(username, message):
+					elem = self.chrome.switch_to.active_element
+					btn.click()
+					time.sleep(2)
+					for n in elem.find_elements_by_tag_name('button'):
+						if n.text.strip() == "Ajouter une note":
+							note = n 
+						if n.text.strip() == "Envoyer":
+							send = n
+					note.click() 
+					time.sleep(2)
 
-				new_message = f"Bonjour {self.getName(username)},\n" + message
-				textarea = self.chrome.find_element_by_id('custom-message')
-				textarea.send_keys(new_message)
+					new_message = f"Bonjour {self.getName(username)},\n" + message
+					textarea = self.chrome.find_element_by_id('custom-message')
+					textarea.send_keys(new_message)
 
-				time.sleep(3)
-				send.click()
+					time.sleep(3)
+					send.click()
 
-				self.insertName(username, message)
-				time.sleep(temps)
+					self.insertName(username, message)
+					self.ecrireLog(f"{username}: envoyé avec succès")
+					time.sleep(temps)
+				else:
+					self.ecrireLog(f"{username}: deja envoyé")
+			except Exception err:
+				self.ecrireLog(err)
+
 
 
 
@@ -164,9 +169,26 @@ class Linkedin:
 		return nom
 
 
+	def screenshot(self):
+		try:
+			hauteur = self.chrome.execute_script("""
+				return document.body.parentNode.scrollHeight
+			""")
+
+			self.chrome.set_window_size(1920, hauteur)
+		except: 
+			pass 
+		finally:
+			self.chrome.find_element_by_tag_name("body").screenshot("log/images/"+self.logName+".png")
+
+
+	def ecrireLog(self, err):
+		with open("log/"+linkedin.logName+".txt", "a") as logFile:
+			logFile.write(str(err) + "\n")
+
+
 
 if __name__ == "__main__":
-
 	# initialiser un bot linkedin
 	linkedin = Linkedin(PROXY)
 
@@ -174,15 +196,26 @@ if __name__ == "__main__":
 		# se connecter
 		linkedin.login(email, password)
 	except Exception as err:
-		with open("log/"+linkedin.logName+".txt", "a") as logFile:
-			logFile.write(str(err) + "\n")
-		linkedin.chrome.find_element_by_tag_name("body").screenshot("log/images/"+linkedin.logName+".png")
+		linkedin.ecrireLog(err)
+		linkedin.screenshot()
 		linkedin.chrome.close()
 		exit()
 
 
-	# rechercher
-	res = linkedin.recherche(mot_cle, personne=True)
+	try:
+		# rechercher
+		res = linkedin.recherche(mot_cle, personne=True, ville=ville)
+	except Exception as err:
+		linkedin.ecrireLog(err)
+		linkedin.screenshot()
+		linkedin.chrome.close()
+		exit()
 
 	# envoyer message aux resultat
-	linkedin.send_message_result(res, message, interval_temps)
+	try:
+		linkedin.send_message_result(res, message, interval_temps)
+	except Exception as err:
+		linkedin.ecrireLog(err)
+		linkedin.screenshot()
+		linkedin.chrome.close()
+		exit()
