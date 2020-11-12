@@ -1,4 +1,4 @@
-import os, re, time, urllib.parse, sqlite3
+import os, re, time, datetime, urllib.parse, sqlite3
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
@@ -16,15 +16,24 @@ from config import *
 
 
 
-
 class Linkedin:
-	def __init__(self, proxy):
+	def __init__(self, proxy=None):
 		self.proxy = proxy
 		self.config()
 		self._initDb()
+		self.logName = datetime.datetime.now().strftime("%Y%M%d_%H%m%S")
+		# create file 
+		with open("log/"+self.logName+".txt", "w"): pass  
+
 
 
 	def config(self):
+		# CREATION DOSSIER DE LOG
+		if not os.path.isdir('log'):
+			os.mkdir('log')
+		if not os.path.isdir('log/images'):
+			os.mkdir('log/images')
+
 		options = Options()
 		# AJOUT D'ADRESSES PROXY SI DEFINIT
 		if self.proxy: 
@@ -48,6 +57,8 @@ class Linkedin:
 
 		db.commit()
 		db.close()
+
+
 
 
 	def login(self, email, password):
@@ -159,8 +170,16 @@ if __name__ == "__main__":
 	# initialiser un bot linkedin
 	linkedin = Linkedin(PROXY)
 
-	# se connecter
-	linkedin.login(email, password)
+	try:
+		# se connecter
+		linkedin.login(email, password)
+	except Exception as err:
+		with open("log/"+linkedin.logName+".txt", "a") as logFile:
+			logFile.write(str(err) + "\n")
+		linkedin.chrome.find_element_by_tag_name("body").screenshot("log/images/"+linkedin.logName+".png")
+		linkedin.chrome.close()
+		exit()
+
 
 	# rechercher
 	res = linkedin.recherche(mot_cle, personne=True)
