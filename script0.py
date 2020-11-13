@@ -115,6 +115,7 @@ class Linkedin:
 
 					new_message = f"Bonjour {self.getName(username)},\n" + message
 					textarea = self.chrome.find_element_by_id('custom-message')
+					textarea.clear() # On s'assure que c'est bien effacé
 					textarea.send_keys(new_message)
 
 					time.sleep(3)
@@ -125,7 +126,7 @@ class Linkedin:
 					time.sleep(temps)
 				else:
 					self.ecrireLog(f"{username}: deja envoyé")
-			except Exception err:
+			except Exception as err:
 				self.ecrireLog(err)
 
 
