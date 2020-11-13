@@ -46,7 +46,8 @@ class Linkedin:
 			(
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				utilisateur TEXT,
-				message TEXT 
+				message TEXT,
+				nom TEXT
 			)
 		""")
 
@@ -83,7 +84,10 @@ class Linkedin:
 		reg = ""
 		if filtre.get("ville"):
 			if len(filtre.get("ville"))>0:
+				# le variable est aleatoire entre ces deux
+				# du coup je met les deux, il ne prendra pas encompte ce qu'il n'utilise pas
 				reg = "geoUrn=" + urllib.parse.quote(filtre.get("ville")) + "&"
+				reg += "facetGeoUrn=" + urllib.parse.quote(filtre.get("ville")) + "&"
 		page = ""
 		if filtre.get("page"):
 			page = "&page=2"
@@ -109,14 +113,20 @@ class Linkedin:
 		for block in elements:
 			try:
 				btn = block.find_element_by_tag_name('button')
-				if btn.text.strip() == "En attente": continue
+				if btn.text.strip() in ("En attente", "Invitation envoyée"):
+					continue
 				link = block.find_element_by_tag_name('a')
-				username = urllib.parse.unquote(link.get_property('href').split('/')[-1])
-				
+
+				tmpuser = link.get_property('href').split('/')
+				while tmpuser[-1].strip() == '':
+					tmpuser = tmpuser[:-1]
+				username = urllib.parse.unquote(tmpuser[-1])
+				nom = link.text
 				if self.verifName(username, message):
-					elem = self.chrome.switch_to.active_element
+					# elem = self.chrome.switch_to.active_element
 					btn.click()
 					time.sleep(2)
+					elem = self.chrome.switch_to.active_element
 					for n in elem.find_elements_by_tag_name('button'):
 						if n.text.strip() == "Ajouter une note":
 							note = n 
@@ -125,7 +135,7 @@ class Linkedin:
 					note.click() 
 					time.sleep(2)
 
-					new_message = f"Bonjour {self.getName(username)},\n" + message
+					new_message = f"Bonjour {nom},\n" + message
 					textarea = self.chrome.find_element_by_id('custom-message')
 					textarea.clear() # On s'assure que c'est bien effacé
 					textarea.send_keys(new_message)
@@ -133,7 +143,7 @@ class Linkedin:
 					time.sleep(3)
 					send.click()
 
-					self.insertName(username, message)
+					self.insertName(username, message, nom)
 					self.ecrireLog(f"{username}: envoyé avec succès")
 					time.sleep(temps)
 				else:
@@ -143,14 +153,14 @@ class Linkedin:
 			time.sleep(2)
 
 
-	def insertName(self, username, message):
+	def insertName(self, username, message, nom):
 		db = sqlite3.connect("__bot.db")
 		cursor = db.cursor()
 
 		cursor.execute("""
-			INSERT INTO Cible (utilisateur, message)
+			INSERT INTO Cible (utilisateur, message, nom)
 			VALUES (?, ?)
-		""", (username, message))
+		""", (username, message, nom))
 		db.commit()
 		db.close()
 
@@ -171,16 +181,6 @@ class Linkedin:
 		return True if len(res) == 0 else False
 
 
-	@classmethod
-	def getName(self, username):
-		_nom = username.split('-')
-		nom = ""
-		for __nom in _nom:
-			if re.match(r'^[a-z]+$', __nom):
-				nom = nom + " " +__nom.capitalize()
-		return nom
-
-
 	def captureEcran(self, **args):
 		try:
 			hauteur = self.chrome.execute_script("""
@@ -196,7 +196,7 @@ class Linkedin:
 
 
 	def ecrireLog(self, err):
-		with open("log/"+linkedin.logName+".txt", "a") as logFile:
+		with open("log/"+self.logName+".txt", "a") as logFile:
 			logFile.write(str(err) + "\n")
 
 
@@ -235,3 +235,7 @@ if __name__ == "__main__":
 			linkedin.chrome.close()
 			exit()
 	time.sleep(5)
+
+	linkedin.chrome.execute_script("""
+		alert('Tâche terminé')
+	""")
