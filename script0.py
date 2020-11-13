@@ -84,9 +84,21 @@ class Linkedin:
 		if filtre.get("ville"):
 			if len(filtre.get("ville"))>0:
 				reg = "geoUrn=" + urllib.parse.quote(filtre.get("ville")) + "&"
-		url = f"https://www.linkedin.com/search/results/{type_}/?{reg}keywords={query}&origin=SWITCH_SEARCH_VERTICAL"
+		page = ""
+		if filtre.get("page"):
+			page = "&page=2"
+		# generation du l'url de recherche
+		url = f"https://www.linkedin.com/search/results/{type_}/?{reg}keywords={query}&origin=SWITCH_SEARCH_VERTICAL{page}"
 		self.chrome.get(url)
 		time.sleep(3)
+
+		try:
+		    element = WebDriverWait(self.chrome, 10).until(
+		        EC.presence_of_element_located((By.TAG_NAME , "button"))
+		    )
+		finally:
+		    self.ecrireLog("Aucun boutton trouvé")
+		    self.captureEcran(suffix="_1")
 
 		section = self.chrome.find_element_by_class_name("search-results-page")
 		return section.find_elements_by_tag_name("li")
@@ -128,8 +140,7 @@ class Linkedin:
 					self.ecrireLog(f"{username}: deja envoyé")
 			except Exception as err:
 				self.ecrireLog(err)
-
-
+			time.sleep(2)
 
 
 	def insertName(self, username, message):
@@ -170,7 +181,7 @@ class Linkedin:
 		return nom
 
 
-	def screenshot(self):
+	def captureEcran(self, **args):
 		try:
 			hauteur = self.chrome.execute_script("""
 				return document.body.parentNode.scrollHeight
@@ -178,9 +189,10 @@ class Linkedin:
 
 			self.chrome.set_window_size(1920, hauteur)
 		except: 
-			pass 
+			pass
 		finally:
-			self.chrome.find_element_by_tag_name("body").screenshot("log/images/"+self.logName+".png")
+			body = self.chrome.find_element_by_tag_name("body")
+			body.screenshot("log/images/"+self.logName+f"{args.get('suffix')}.png")
 
 
 	def ecrireLog(self, err):
@@ -198,25 +210,28 @@ if __name__ == "__main__":
 		linkedin.login(email, password)
 	except Exception as err:
 		linkedin.ecrireLog(err)
-		linkedin.screenshot()
+		linkedin.captureEcran()
 		linkedin.chrome.close()
 		exit()
 
+	for page in range(pages):
+		page += 1
+		print(f"Entrant dans la {page} page")
+		try:
+			# rechercher
+			res = linkedin.recherche(mot_cle, personne=True, ville=ville, page=page)
+		except Exception as err:
+			linkedin.ecrireLog(err)
+			linkedin.captureEcran()
+			linkedin.chrome.close()
+			exit()
 
-	try:
-		# rechercher
-		res = linkedin.recherche(mot_cle, personne=True, ville=ville)
-	except Exception as err:
-		linkedin.ecrireLog(err)
-		linkedin.screenshot()
-		linkedin.chrome.close()
-		exit()
-
-	# envoyer message aux resultat
-	try:
-		linkedin.send_message_result(res, message, interval_temps)
-	except Exception as err:
-		linkedin.ecrireLog(err)
-		linkedin.screenshot()
-		linkedin.chrome.close()
-		exit()
+		# envoyer message aux resultat
+		try:
+			linkedin.send_message_result(res, message, interval_temps)
+		except Exception as err:
+			linkedin.ecrireLog(err)
+			linkedin.captureEcran()
+			linkedin.chrome.close()
+			exit()
+	time.sleep(5)
