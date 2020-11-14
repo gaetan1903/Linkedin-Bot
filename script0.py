@@ -204,7 +204,7 @@ class Linkedin:
 	def captureEcran(self, **args):
 		if args.get('suffix'):
 			suffix = args.get('suffix')
-		else suffix = ''
+		else: suffix = ''
 		
 		try:
 			hauteur = self.chrome.execute_script("""
@@ -216,7 +216,7 @@ class Linkedin:
 			pass
 		finally:
 			body = self.chrome.find_element_by_tag_name("body")
-			body.screenshot("log/images/"+self.logName+f"{}.png")
+			body.screenshot("log/images/"+self.logName+f"{suffix}.png")
 
 
 	def ecrireLog(self, err):
@@ -260,13 +260,13 @@ if __name__ == "__main__":
 			exit()
 
 		# envoyer message aux resultat
-		# try:
-		linkedin.send_message_result(res, message)
-		# except Exception as err:
-		# 	linkedin.ecrireLog(err)
-		# 	linkedin.captureEcran()
-		# 	linkedin.chrome.close()
-		# 	exit()
+		try:
+			linkedin.send_message_result(res, message)
+		except Exception as err:
+			linkedin.ecrireLog(err)
+			linkedin.captureEcran()
+			linkedin.chrome.close()
+			exit()
 		
 		time.sleep(PAUSE_PAGE)
 

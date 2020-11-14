@@ -7,7 +7,7 @@ message = """Votre parcours est très intéressant bravo. J'aimerai vous compter
 
 
 # le mot clé à rechercher
-mot_cle = "Responsable communication"
+mot_cle = "Responsable finance"
 
 
 # Voci un exemple de Proxy , Metter en None ou False pour desactiver
