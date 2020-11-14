@@ -10,7 +10,6 @@ from selenium.webdriver.common.by import By
 from config import *
 
 
-
 class Linkedin:
 	def __init__(self, proxy=None):
 		self.proxy = proxy
@@ -47,7 +46,7 @@ class Linkedin:
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				utilisateur TEXT,
 				message TEXT,
-				nom TEXT
+				nom_complet TEXT
 			)
 		""")
 
@@ -57,17 +56,19 @@ class Linkedin:
 
 
 	def login(self, email, password):
-		self.chrome.get('https://www.linkedin.com')
-
+		self.chrome.get('https://www.linkedin.com/login/fr?fromSignIn=true')
+		time.sleep(ATTENTE_PAGE)
 		# ciblage des champs necessaire
-		userChamp = self.chrome.find_element_by_id('session_key')
-		passwordChamp = self.chrome.find_element_by_id('session_password')
-		loginBouton = self.chrome.find_element_by_class_name("sign-in-form__submit-button")
-		time.sleep(1)
+		userChamp = self.chrome.find_element_by_id('username')
+		passwordChamp = self.chrome.find_element_by_id('password')
+		loginBouton = self.chrome.find_element_by_xpath("//button[@type='submit']")
+	
 		userChamp.send_keys(email)
-		time.sleep(1)
+		time.sleep(INPUT_ATTENTE)
+
 		passwordChamp.send_keys(password)
-		time.sleep(1)
+		time.sleep(INPUT_ATTENTE)
+
 		loginBouton.click()
 
 
@@ -90,67 +91,86 @@ class Linkedin:
 				reg += "facetGeoUrn=" + urllib.parse.quote(filtre.get("ville")) + "&"
 		page = ""
 		if filtre.get("page"):
-			page = "&page=2"
+			page = f"&page={filtre.get('page')}"
+
 		# generation du l'url de recherche
-		url = f"https://www.linkedin.com/search/results/{type_}/?{reg}keywords={query}&origin=SWITCH_SEARCH_VERTICAL{page}"
+		url = f"https://www.linkedin.com/search/results/{type_}/"
+		# les parametres pour l'url
+		url += f"?{reg}keywords={query}&origin=SWITCH_SEARCH_VERTICAL{page}"
 		self.chrome.get(url)
-		time.sleep(3)
+		time.sleep(ATTENTE_PAGE)
 
-		try:
-		    element = WebDriverWait(self.chrome, 10).until(
-		        EC.presence_of_element_located((By.TAG_NAME , "button"))
-		    )
-		finally:
-		    self.ecrireLog("Aucun boutton trouvé")
-		    self.captureEcran(suffix="_1")
-
-		section = self.chrome.find_element_by_class_name("search-results-page")
+		section = self.chrome.find_element_by_xpath("//ul[contains(@class, 'search-result')]")
 		return section.find_elements_by_tag_name("li")
 		
 
 
-	def send_message_result(self, elements, message, temps):
+	def send_message_result(self, elements, message):
 		for block in elements:
 			try:
-				btn = block.find_element_by_tag_name('button')
-				if btn.text.strip() in ("En attente", "Invitation envoyée"):
-					continue
 				link = block.find_element_by_tag_name('a')
+			except: 
+				self.ecrireLog(f"la balise a n'est pas trouvé dans:\n------- DEBUT HTML -------- {block.get_attribute('outerHTML')}\n ------- FIN HTML --------\n\n\n")
+				continue
 
-				tmpuser = link.get_property('href').split('/')
-				while tmpuser[-1].strip() == '':
-					tmpuser = tmpuser[:-1]
-				username = urllib.parse.unquote(tmpuser[-1])
-				nom = link.text
-				if self.verifName(username, message):
-					# elem = self.chrome.switch_to.active_element
-					btn.click()
-					time.sleep(2)
-					elem = self.chrome.switch_to.active_element
-					for n in elem.find_elements_by_tag_name('button'):
-						if n.text.strip() == "Ajouter une note":
-							note = n 
-						if n.text.strip() == "Envoyer":
-							send = n
-					note.click() 
-					time.sleep(2)
+			# extraction du nom d'utilisateur du lien 
+			tmpuser = link.get_property('href').split('/')
+			while tmpuser[-1].strip() == '':
+				tmpuser = tmpuser[:-1]
+			username = urllib.parse.unquote(tmpuser[-1])
 
-					new_message = f"Bonjour {nom},\n" + message
-					textarea = self.chrome.find_element_by_id('custom-message')
-					textarea.clear() # On s'assure que c'est bien effacé
-					textarea.send_keys(new_message)
+			# prendre le nom complet de la personne
+			nomComplet = link.text
+			if nomComplet.strip() == '':
+				# on essaie de le prendre par l'username
+				nomComplet = self.getName(username)
 
-					time.sleep(3)
-					send.click()
-
-					self.insertName(username, message, nom)
-					self.ecrireLog(f"{username}: envoyé avec succès")
-					time.sleep(temps)
-				else:
-					self.ecrireLog(f"{username}: deja envoyé")
+			try:
+				btn = WebDriverWait(block, 3).until(EC.presence_of_element_located((By.XPATH, "//button[text()='Se connecter']")))
 			except Exception as err:
-				self.ecrireLog(err)
-			time.sleep(2)
+				self.ecrireLog(f"{nomComplet}: Ne peut pas etre envoyée de message\n------- DEBUT HTML -------- {block.get_attribute('outerHTML')}\n ------- FIN HTML --------\n\n\n")
+				block.screenshot(f"log/images/{self.logName}_{nomComplet}.png")
+				continue  
+
+			if self.verifName(username, message):
+				btn.click()
+				time.sleep(ATTENTE_BOUTON)
+
+				elem = self.chrome.switch_to.active_element
+
+				try:
+					note = elem.find_element_by_xpath("//button//span[text()='Ajouter une note']")
+				except: 
+					self.ecrireLog(f"{nomComplet}: //button//span[text()='Ajouter une note'] pas trouvé in \n------- DEBUT HTML -------- {elem.get_attribute('outerHTML')}\n ------- FIN HTML --------\n\n\n")
+					continue
+					
+				try:
+					send = elem.find_element_by_xpath("//button//span[text()='Envoyer']")
+				except: 
+					self.ecrireLog(f"{nomComplet}: //button//span[text()='Envoyer'] pas trouvé in \n------- DEBUT HTML -------- {elem.get_attribute('outerHTML')}\n ------- FIN HTML --------\n\n\n")
+					continue
+
+				
+				note.click() 
+				time.sleep(ATTENTE_BOUTON)
+				new_message = f"Bonjour {nomComplet.split()[0]},\n" + message
+
+				textarea = elem.find_element_by_id('custom-message')
+				textarea.clear() # On s'assure que c'est bien effacé
+				textarea.send_keys(new_message)
+
+				time.sleep(INPUT_ATTENTE)
+				send.click()
+
+				try: 
+					self.insertName(username, message, nomComplet)
+				except Exception as err: 
+					self.ecrireLog("Probleme en base de donnee: " + str(err))
+				else: self.ecrireLog(f"{username}: envoyé avec succès")
+
+				time.sleep(MSG_INTERVAL)
+			else:
+				self.ecrireLog(f"{username}: deja envoyé PAR UN AUTRE BOT")
 
 
 	def insertName(self, username, message, nom):
@@ -158,8 +178,8 @@ class Linkedin:
 		cursor = db.cursor()
 
 		cursor.execute("""
-			INSERT INTO Cible (utilisateur, message, nom)
-			VALUES (?, ?)
+			INSERT INTO Cible (utilisateur, message, nom_complet)
+			VALUES (?, ?, ?)
 		""", (username, message, nom))
 		db.commit()
 		db.close()
@@ -182,6 +202,10 @@ class Linkedin:
 
 
 	def captureEcran(self, **args):
+		if args.get('suffix'):
+			suffix = args.get('suffix')
+		else suffix = ''
+		
 		try:
 			hauteur = self.chrome.execute_script("""
 				return document.body.parentNode.scrollHeight
@@ -192,13 +216,22 @@ class Linkedin:
 			pass
 		finally:
 			body = self.chrome.find_element_by_tag_name("body")
-			body.screenshot("log/images/"+self.logName+f"{args.get('suffix')}.png")
+			body.screenshot("log/images/"+self.logName+f"{}.png")
 
 
 	def ecrireLog(self, err):
-		with open("log/"+self.logName+".txt", "a") as logFile:
+		with open("log/"+self.logName+".txt", "a", encoding="utf-8") as logFile:
 			logFile.write(str(err) + "\n")
 
+
+	@classmethod
+	def getName(self, username):
+		_nom = username.split('-')
+		nom = ""
+		for __nom in _nom:
+			if re.match(r"^[a-z'àáâãäåçèéêëìíîïðòóôõöùúûüýÿ]+$", __nom.lower()):
+				nom = nom + " " +__nom.capitalize()
+		return nom
 
 
 if __name__ == "__main__":
@@ -227,14 +260,15 @@ if __name__ == "__main__":
 			exit()
 
 		# envoyer message aux resultat
-		try:
-			linkedin.send_message_result(res, message, interval_temps)
-		except Exception as err:
-			linkedin.ecrireLog(err)
-			linkedin.captureEcran()
-			linkedin.chrome.close()
-			exit()
-	time.sleep(5)
+		# try:
+		linkedin.send_message_result(res, message)
+		# except Exception as err:
+		# 	linkedin.ecrireLog(err)
+		# 	linkedin.captureEcran()
+		# 	linkedin.chrome.close()
+		# 	exit()
+		
+		time.sleep(PAUSE_PAGE)
 
 	linkedin.chrome.execute_script("""
 		alert('Tâche terminé')
