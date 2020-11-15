@@ -125,6 +125,7 @@ class Linkedin:
 				# on essaie de le prendre par l'username
 				nomComplet = self.getName(username)
 
+			print(f"Tour de {nomComplet} as {username}")
 			try:
 				btn = WebDriverWait(block, 3).until(EC.presence_of_element_located((By.XPATH, "//button[text()='Se connecter']")))
 			except Exception as err:
@@ -149,11 +150,15 @@ class Linkedin:
 				except: 
 					self.ecrireLog(f"{nomComplet}: //button//span[text()='Envoyer'] pas trouvé in \n------- DEBUT HTML -------- {elem.get_attribute('outerHTML')}\n ------- FIN HTML --------\n\n\n")
 					continue
-
-				
+		
 				note.click() 
 				time.sleep(ATTENTE_BOUTON)
-				new_message = f"Bonjour {nomComplet.split()[0]},\n" + message
+				if nomComplet.strip() == '':
+					prenom = ''
+				else:
+					prenom = nomComplet.split()[0]
+
+				new_message = f"Bonjour {prenom},\n" + message
 
 				textarea = elem.find_element_by_id('custom-message')
 				textarea.clear() # On s'assure que c'est bien effacé
@@ -242,6 +247,7 @@ if __name__ == "__main__":
 		# se connecter
 		linkedin.login(email, password)
 	except Exception as err:
+		print(err)
 		linkedin.ecrireLog(err)
 		linkedin.captureEcran()
 		linkedin.chrome.close()
@@ -254,6 +260,7 @@ if __name__ == "__main__":
 			# rechercher
 			res = linkedin.recherche(mot_cle, personne=True, ville=ville, page=page)
 		except Exception as err:
+			print(err)
 			linkedin.ecrireLog(err)
 			linkedin.captureEcran()
 			linkedin.chrome.close()
@@ -263,6 +270,7 @@ if __name__ == "__main__":
 		try:
 			linkedin.send_message_result(res, message)
 		except Exception as err:
+			print(err)
 			linkedin.ecrireLog(err)
 			linkedin.captureEcran()
 			linkedin.chrome.close()
