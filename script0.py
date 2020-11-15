@@ -134,7 +134,12 @@ class Linkedin:
 				continue  
 
 			if self.verifName(username, message):
-				btn.click()
+				try:
+					btn.click()
+				except Exception as err:
+					self.ecrireLog(f"{username} - Bouton Non cliquable:\n {err}\n {btn.get_attribute('outerHTML')}")
+					continue 
+
 				time.sleep(ATTENTE_BOUTON)
 
 				elem = self.chrome.switch_to.active_element
