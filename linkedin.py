@@ -6,14 +6,12 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
-# importer les identifiants
-from config import *
 
 
 class Linkedin:
-	def __init__(self, proxy=None):
-		self.proxy = proxy
-		self.config()
+	def __init__(self, **kwargs):
+		self.kwargs = kwargs
+		self._config()
 		self._initDb()
 		self.logName = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 		# create file 
@@ -21,7 +19,20 @@ class Linkedin:
 
 
 
-	def config(self):
+	def _config(self):
+		self.PROXY = self.kwargs.get("PROXY") \
+			if self.kwargs.get("PROXY") else None
+		self.MSG_INTERVAL = self.kwargs.get("MSG_INTERVAL") \
+			if self.kwargs.get("MSG_INTERVAL") else 5
+		self.ATTENTE_PAGE = self.kwargs.get("ATTENTE_PAGE") \
+			if self.kwargs.get("ATTENTE_PAGE") else 2
+		self.ATTENTE_BOUTON = self.kwargs.get("ATTENTE_BOUTON") \
+			if self.kwargs.get("ATTENTE_BOUTON") else 2
+		self.PAUSE_PAGE = self.kwargs.get("PAUSE_PAGE") \
+			if self.kwargs.get("PAUSE_PAGE") else 3
+		self.INPUT_ATTENTE = self.kwargs.get("INPUT_ATTENTE") \
+			if self.kwargs.get("INPUT_ATTENTE") else 1
+
 		# CREATION DOSSIER DE LOG
 		if not os.path.isdir('log'):
 			os.mkdir('log')
@@ -30,8 +41,8 @@ class Linkedin:
 
 		options = Options()
 		# AJOUT D'ADRESSES PROXY SI DEFINIT
-		if self.proxy: 
-			options.add_argument(f'--proxy-server={self.proxy}')
+		if self.PROXY: 
+			options.add_argument(f'--proxy-server={self.PROXY}')
 		self.chrome = webdriver.Chrome(os.path.abspath('driver\\chromedriver.exe'), options=options)
 		self.chrome.maximize_window()
 
@@ -46,7 +57,8 @@ class Linkedin:
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				utilisateur TEXT,
 				message TEXT,
-				nom_complet TEXT
+				nom_complet TEXT,
+				invitation INTEGER DEFAULT 1
 			)
 		""")
 
@@ -57,17 +69,17 @@ class Linkedin:
 
 	def login(self, email, password):
 		self.chrome.get('https://www.linkedin.com/login/fr?fromSignIn=true')
-		time.sleep(ATTENTE_PAGE)
+		time.sleep(self.ATTENTE_PAGE)
 		# ciblage des champs necessaire
 		userChamp = self.chrome.find_element_by_id('username')
 		passwordChamp = self.chrome.find_element_by_id('password')
 		loginBouton = self.chrome.find_element_by_xpath("//button[@type='submit']")
 	
 		userChamp.send_keys(email)
-		time.sleep(INPUT_ATTENTE)
+		time.sleep(self.INPUT_ATTENTE)
 
 		passwordChamp.send_keys(password)
-		time.sleep(INPUT_ATTENTE)
+		time.sleep(self.INPUT_ATTENTE)
 
 		loginBouton.click()
 
@@ -98,9 +110,16 @@ class Linkedin:
 		# les parametres pour l'url
 		url += f"?{reg}keywords={query}&origin=SWITCH_SEARCH_VERTICAL{page}"
 		self.chrome.get(url)
-		time.sleep(ATTENTE_PAGE)
+		time.sleep(self.ATTENTE_PAGE)
 
 		section = self.chrome.find_element_by_xpath("//ul[contains(@class, 'search-result')]")
+		try:
+			# verifier s'il y a dispo
+			verifBut = section.find_elements_by_xpath('//li//button[text()="Se connecter"]')
+		except: 
+			# si pas dispo, vide alors
+			return []
+
 		return section.find_elements_by_tag_name("li")
 		
 
@@ -140,7 +159,7 @@ class Linkedin:
 					self.ecrireLog(f"{username} - Bouton Non cliquable:\n {err}\n {btn.get_attribute('outerHTML')}")
 					continue 
 
-				time.sleep(ATTENTE_BOUTON)
+				time.sleep(self.ATTENTE_BOUTON)
 
 				elem = self.chrome.switch_to.active_element
 
@@ -156,8 +175,13 @@ class Linkedin:
 					self.ecrireLog(f"{nomComplet}: //button//span[text()='Envoyer'] pas trouvé in \n------- DEBUT HTML -------- {elem.get_attribute('outerHTML')}\n ------- FIN HTML --------\n\n\n")
 					continue
 		
-				note.click() 
-				time.sleep(ATTENTE_BOUTON)
+				try:
+					note.click()
+				except Exception as err:
+					self.chrome.find_element_by_tag_name('body').click()
+					continue 
+
+				time.sleep(self.ATTENTE_BOUTON)
 				if nomComplet.strip() == '':
 					prenom = ''
 				else:
@@ -169,8 +193,12 @@ class Linkedin:
 				textarea.clear() # On s'assure que c'est bien effacé
 				textarea.send_keys(new_message)
 
-				time.sleep(INPUT_ATTENTE)
-				send.click()
+				time.sleep(self.INPUT_ATTENTE)
+				try:
+					send.click()
+				except Exception as err:
+					self.chrome.find_element_by_tag_name('body').click()
+					continue
 
 				try: 
 					self.insertName(username, message, nomComplet)
@@ -178,7 +206,7 @@ class Linkedin:
 					self.ecrireLog("Probleme en base de donnee: " + str(err))
 				else: self.ecrireLog(f"{username}: envoyé avec succès")
 
-				time.sleep(MSG_INTERVAL)
+				time.sleep(self.MSG_INTERVAL)
 			else:
 				self.ecrireLog(f"{username}: deja envoyé PAR UN AUTRE BOT")
 
@@ -244,45 +272,7 @@ class Linkedin:
 		return nom
 
 
-if __name__ == "__main__":
-	# initialiser un bot linkedin
-	linkedin = Linkedin(PROXY)
+	def cancelInvitation(self):
+		pass
 
-	try:
-		# se connecter
-		linkedin.login(email, password)
-	except Exception as err:
-		print(err)
-		linkedin.ecrireLog(err)
-		linkedin.captureEcran()
-		linkedin.chrome.close()
-		exit()
 
-	for page in range(pages):
-		page += 1
-		print(f"Entrant dans la {page} page")
-		try:
-			# rechercher
-			res = linkedin.recherche(mot_cle, personne=True, ville=ville, page=page)
-		except Exception as err:
-			print(err)
-			linkedin.ecrireLog(err)
-			linkedin.captureEcran()
-			linkedin.chrome.close()
-			exit()
-
-		# envoyer message aux resultat
-		try:
-			linkedin.send_message_result(res, message)
-		except Exception as err:
-			print(err)
-			linkedin.ecrireLog(err)
-			linkedin.captureEcran()
-			linkedin.chrome.close()
-			exit()
-		
-		time.sleep(PAUSE_PAGE)
-
-	linkedin.chrome.execute_script("""
-		alert('Tâche terminé')
-	""")
