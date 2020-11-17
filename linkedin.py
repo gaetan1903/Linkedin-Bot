@@ -296,7 +296,11 @@ class Linkedin:
 		self.chrome.get('https://www.linkedin.com/mynetwork/invitation-manager/sent/')
 		time.sleep(self.ATTENTE_PAGE)
 
-		lastPage = self.chrome.find_element_by_xpath("//ul[contains(@class, 'number')]//li[last()]").text
+		try: 
+			lastPage = self.chrome.find_element_by_xpath("//ul[contains(@class, 'number')]//li[last()]").text
+		except:
+			lastPage = '1'
+
 		if not re.match(r'[0-9]', lastPage.strip()):
 			print("page non trouvé")
 			return 
@@ -322,7 +326,10 @@ class Linkedin:
 						elif ref_depuis == "semaines" and int(nbr_depuis)>=2:
 							bouton.click()
 							retirer()
-					except: 
+						else: 
+							print("Ne pas annuler; duree {depuis_str}")
+					except Exception as err:
+						print(err)
 						self.chrome.find_element_by_tag_name('body').click()
 
 					time.sleep(self.MSG_INTERVAL)
