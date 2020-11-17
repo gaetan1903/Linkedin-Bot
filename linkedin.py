@@ -132,11 +132,7 @@ class Linkedin:
 				self.ecrireLog(f"la balise a n'est pas trouvé dans:\n------- DEBUT HTML -------- {block.get_attribute('outerHTML')}\n ------- FIN HTML --------\n\n\n")
 				continue
 
-			# extraction du nom d'utilisateur du lien 
-			tmpuser = link.get_property('href').split('/')
-			while tmpuser[-1].strip() == '':
-				tmpuser = tmpuser[:-1]
-			username = urllib.parse.unquote(tmpuser[-1])
+			username = self.extractUsername(link.get_property('href'))
 
 			# prendre le nom complet de la personne
 			nomComplet = link.text
@@ -272,7 +268,67 @@ class Linkedin:
 		return nom
 
 
-	def cancelInvitation(self):
-		pass
+	@classmethod
+	def extractUsername(self, url):
+		# extraction du nom d'utilisateur du lien 
+		tmpuser = url.split('/')
+		while tmpuser[-1].strip() == '':
+			tmpuser = tmpuser[:-1]
+		return urllib.parse.unquote(tmpuser[-1])
 
+
+	def cancelInvitation(self):
+		def retirer():
+			time.sleep(self.ATTENTE_BOUTON)
+			elem = self.chrome.switch_to.active_element
+
+			btn = elem.find_element_by_xpath("//button//span[text()='Retirer']")
+			try:
+				btn.click()
+			except:
+				pass
+			else:
+				print(f"invitation {username} annuler; duree: {depuis_str.text}")
+			finally:
+				self.chrome.find_element_by_tag_name('body').click()
+
+
+		self.chrome.get('https://www.linkedin.com/mynetwork/invitation-manager/sent/')
+		time.sleep(self.ATTENTE_PAGE)
+
+		lastPage = self.chrome.find_element_by_xpath("//ul[contains(@class, 'number')]//li[last()]").text
+		if not re.match(r'[0-9]', lastPage.strip()):
+			print("page non trouvé")
+			return 
+		else:
+			for page in range(int(lastPage),0,-1):
+				self.chrome.get(f'https://www.linkedin.com/mynetwork/invitation-manager/sent/?page={page}')
+				time.sleep(self.ATTENTE_PAGE)
+
+				pr = self.chrome.find_elements_by_xpath("//ul[contains(@class, 'invitation')]//li")
+
+				for block in pr:
+					try:
+						link = block.find_element_by_tag_name("a")
+						username = self.extractUsername(link.get_attribute('href'))
+						bouton = block.find_element_by_xpath("//button//span[text()='Retirer']")
+						depuis_str = block.find_element_by_tag_name("time")
+						depuis = depuis_str.text.strip().split()
+						nbr_depuis, ref_depuis = depuis[-2], depuis[-1]
+
+						if ref_depuis == 'mois':
+							bouton.click()
+							retirer()
+						elif ref_depuis == "semaines" and int(nbr_depuis)>=2:
+							bouton.click()
+							retirer()
+					except: 
+						self.chrome.find_element_by_tag_name('body').click()
+
+					time.sleep(self.MSG_INTERVAL)
+
+
+
+
+			
 

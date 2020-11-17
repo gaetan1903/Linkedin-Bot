@@ -18,6 +18,9 @@ except Exception as err:
 	linkedin.chrome.close()
 	exit()
 
+
+linkedin.cancelInvitation()
+exit()
 for page in range(pages):
 	page += 1
 	print(f"Entrant dans la {page} page")

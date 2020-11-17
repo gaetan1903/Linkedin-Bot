@@ -32,7 +32,7 @@ PROXY = "23.23.23.23:3128
 CONFIG['PROXY'] = None
 
 # interval de temps pour chaque message
-CONFIG['MSG_INTERVAL'] = 5
+CONFIG['MSG_INTERVAL'] = 3
 
 # Attente après un get url 
 # un loading page
