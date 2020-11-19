@@ -364,7 +364,7 @@ class Linkedin:
 		""")
 		res = cursor.fetchone()
 		db.close()
-		return nombre >= res[0] \
+		return res[0] >= nombre \
 			if res[0] else False
 		
 

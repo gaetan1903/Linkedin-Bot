@@ -17,11 +17,8 @@ except Exception as err:
 	linkedin.chrome.close()
 	exit()
 
-
-if linkedin.verifInvitation(limitinvitation):
+if linkedin.verifInvitation(limitinvitation) or forceCheckInvit:
 	linkedin.cancelInvitation(invitationPage)
-
-
 
 for page in range(pages):
 	page += 1

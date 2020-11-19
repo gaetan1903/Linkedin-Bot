@@ -20,10 +20,15 @@ pour les deux par exemples: ville = '["105015875", "104246759"]'
 ville = '["104246759"]'
 
 # limit d'invitation pour aller faire la suppression 
-limitinvitation = 200 
+countInvitBDD = 200
 
-# llimit de page d'invitation
+#don't check if true
+forceCheckInvit = True
+
+# debut de page d'invitation
 invitationPage = 1
+
+
 
 # ------------------------------------------------------------#
 #                  DEBUT CONFIG OPTIONNEL					  #
