@@ -18,8 +18,11 @@ except Exception as err:
 	exit()
 
 
-linkedin.cancelInvitation()
-exit()
+if linkedin.verifInvitation(limitinvitation):
+	linkedin.cancelInvitation(invitationPage)
+
+
+
 for page in range(pages):
 	page += 1
 	print(f"Entrant dans la {page} page")
@@ -45,7 +48,6 @@ for page in range(pages):
 		linkedin.ecrireLog(err)
 		linkedin.captureEcran()
 		linkedin.chrome.close()
-		exit()
 	
 	time.sleep(linkedin.PAUSE_PAGE)
 

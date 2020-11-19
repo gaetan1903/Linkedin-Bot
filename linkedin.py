@@ -133,7 +133,8 @@ class Linkedin:
 				continue
 
 			username = self.extractUsername(link.get_property('href'))
-
+			if username.startswith('?'):
+				continue
 			# prendre le nom complet de la personne
 			nomComplet = link.text
 			if nomComplet.strip() == '':
@@ -264,15 +265,16 @@ class Linkedin:
 		nom = ""
 		for __nom in _nom:
 			if re.match(r"^[a-z'àáâãäåçèéêëìíîïðòóôõöùúûüýÿ]+$", __nom.lower()):
-				nom = nom + " " +__nom.capitalize()
+				nom += " " +__nom.capitalize()
 		return nom
+
 
 	def invitationStatus(self, username):
 		db = sqlite3.connect("__bot.db")
 		cursor = db.cursor()
 		cursor.execute("""
 			UPDATE Cible SET invitation = 0
-			WHERE username = ?
+			WHERE utilisateur = ?
 		""", (username,))
 
 		db.commit()
@@ -285,22 +287,23 @@ class Linkedin:
 		tmpuser = url.split('/')
 		while tmpuser[-1].strip() == '':
 			tmpuser = tmpuser[:-1]
-		return urllib.parse.unquote(tmpuser[-1])
+		return urllib.parse.unquote(tmpuser[-1]).strip()
 
 
-	def cancelInvitation(self):
+	def cancelInvitation(self, page):
 		def retirer():
-			# time.sleep(self.ATTENTE_BOUTON)
+			time.sleep(self.ATTENTE_BOUTON)
 			elem = self.chrome.switch_to.active_element
-
 			btn = elem.find_element_by_xpath("//button//span[text()='Retirer']/parent::button")
 			try:
 				b_Id = btn.get_attribute('id')
 				self.chrome.execute_script(f"document.getElementById('{b_Id}').click();")
-			except:
-				pass
+			except Exception as err:
+				print(err)
+				self.ecrireLog(err)
 			else:
-				print(f"invitation {username} annulée; duree: {depuis_str.text}")
+				print(f"invitation {username} annulée")
+				self.invitationStatus(username)
 			finally:
 				self.chrome.find_element_by_tag_name('body').click()
 
@@ -310,50 +313,60 @@ class Linkedin:
 
 		try: 
 			lastPage = self.chrome.find_element_by_xpath("//ul[contains(@class, 'number')]//li[last()]").text
+			if not re.match(r'[0-9]', lastPage.strip()):
+				raise Exception
 		except:
-			lastPage = '1'
+			lastPage = "1"
+		finally:
+			lastPage = int(lastPage)
 
-		if not re.match(r'[0-9]', lastPage.strip()):
-			print("page non trouvé")
-			return 
-		else:
-			for page in range(int(lastPage),0,-1):
+		while page <= lastPage :
+			try:
 				self.chrome.get(f'https://www.linkedin.com/mynetwork/invitation-manager/sent/?page={page}')
-				time.sleep(self.ATTENTE_PAGE)
+			except Exception as err:
+				print(err)
+				self.ecrireLog(err)
+				self.captureEcran("page_invitation")
+			finally:
+				page = page + 1 
 
+			time.sleep(self.ATTENTE_PAGE)
+ 
+			try:
 				pr = self.chrome.find_elements_by_xpath("//ul[contains(@class, 'invitation')]//li")
+			except Exception as err:
+				print(err)
+				self.ecrireLog(err)
+				pr = []
+			print(len(pr))
+			for block in pr:
 
-				for block in pr[::-1]:
-					try:
-						link = block.find_element_by_tag_name("a")
-						username = self.extractUsername(link.get_attribute('href'))
-						bouton = block.find_element_by_xpath("//button//span[text()='Retirer']/parent::button")
-						depuis_str = block.find_element_by_tag_name("time")
-						depuis = depuis_str.text.strip().split()
-						ref_depuis = depuis[-1]
-						try:
-							nbr_depuis = depuis[-2]
-							int(nbr_depuis)
-						except: 
-							nbr_depuis = 0
-						print(nbr_depuis, ref_depuis)
-						if ref_depuis == ('semaines', 'semaine'):
-							b_Id = bouton.get_attribute('id')
-							self.chrome.execute_script(f"document.getElementById('{b_Id}').click();")
-							time.sleep(self.ATTENTE_BOUTON)
-							retirer()
-						elif ref_depuis == "jours" and int(nbr_depuis)>=5:
-							b_Id = bouton.get_attribute('id')
-							self.chrome.execute_script(f"document.getElementById('{b_Id}').click();")
-							time.sleep(self.ATTENTE_BOUTON)
-							retirer()
-						else: 
-							print(f"{username} :: Ne pas annuler; duree: {depuis_str.text}")
-					except Exception as err:
-						print(err)
-						self.chrome.find_element_by_tag_name('body').click()
+				try:
+					link = block.find_element_by_tag_name("a")
+					username = self.extractUsername(link.get_attribute('href'))
+					bouton = block.find_element_by_xpath("//button//span[text()='Retirer']/parent::button")
+					bouton.click()
+					retirer()
+				except Exception as err:
+					print(err)
+					self.chrome.find_element_by_tag_name('body').click()
 
-					time.sleep(self.MSG_INTERVAL)
+				time.sleep(self.MSG_INTERVAL)
+		print("Tous les pages terminés")
+	
+
+	def verifInvitation(self, nombre):
+		db = sqlite3.connect("__bot.db")
+		cursor = db.cursor()
+		cursor.execute("""
+			SELECT count(id) FROM Cible
+			WHERE invitation = 1
+		""")
+		res = cursor.fetchone()
+		db.close()
+		return nombre >= res[0] \
+			if res[0] else False
+		
 
 
 

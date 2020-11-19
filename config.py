@@ -1,11 +1,11 @@
-email = "gaetan.jonathan.bakary@esti.mg"
-password = "__keyloGGer1903__"
+email = "emc324@gmail.com"
+password = "linkedin2020"
 
 message = """Votre parcours est très intéressant bravo. J'aimerai vous compter parmi mon réseau. Si vous le souhaitez nous pouvons nous connecter . Je n'ai rien à proposer pour le moment mais qui sait ? peut-être plus tard aurions besoin de partager ?
  Je vous souhaite une bonne journée   """
 
 # le mot clé à rechercher
-mot_cle = "Responsable finance"
+mot_cle = "Freelancer"
 
 # nombres de pages à faire
 # maximum 100
@@ -19,7 +19,11 @@ pour les deux par exemples: ville = '["105015875", "104246759"]'
 '''
 ville = '["104246759"]'
 
+# limit d'invitation pour aller faire la suppression 
+limitinvitation = 200 
 
+# llimit de page d'invitation
+invitationPage = 1
 
 # ------------------------------------------------------------#
 #                  DEBUT CONFIG OPTIONNEL					  #
