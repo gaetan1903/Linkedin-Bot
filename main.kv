@@ -1,0 +1,94 @@
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+
+Screen:
+    BoxLayout:
+        orientation: 'vertical'
+        MDToolbar:
+            title: 'BOT Linkedin'
+            id: toolbar
+            left_action_items: [["robot-angry-outline", lambda x: x]]
+            right_action_items: [["help", lambda x: x]]
+            on_action_button: app.callback(self.icon)
+            elevation: 10
+
+
+        NavigationLayout:
+            x: toolbar.height
+
+            ScreenManager:
+                id: screen_manager
+
+                Screen:
+
+                    MDCard:
+                        size_hint: .8, .85
+                        pos_hint: {"center_x": .5, "center_y": .5}
+                        padding: "30dp"
+
+                        MDBoxLayout:
+                            orientation: 'vertical'
+                            adaptive_height: True
+                            pos_hint: {"center_x": .5, "center_y": .5}
+                            spacing: 20
+
+                            MDLabel:
+                                halign:"center"
+                                text: "Nouveau Bot"
+                                theme_text_color: "Custom"
+                                text_color: get_color_from_hex('#008080')
+                                font_size: '16sp'
+            
+                            MDBoxLayout:
+                                adaptive_height: True
+                                orientation: 'vertical'
+                                pos_hint: {"center_x": .5, "center_y": .55}
+                                spacing: 10
+                                
+                                MDTextField:
+                                    pos_hint: {'center_x': .5, 'center_y': .1}
+                                    hint_text: "Mot clé"
+
+
+                                MDBoxLayout:
+                                    adaptive_height: True
+                                    orientation: 'horizontal'
+                                    spacing:20
+
+                                    MDTextField:
+                                        id: compte
+                                        hint_text: "Compte"
+                                        on_focus: if self.focus: app.menu_compte.open()
+
+                                    MDIconButton:
+                                        icon: "account-plus-outline"
+                                        theme_text_color: "Custom"
+                                        text_color: app.theme_cls.primary_color
+
+                                MDTextField:
+                                    id: ville
+                                    pos_hint: {'center_x': .5, 'center_y': .1}
+                                    hint_text: "Ville"
+                                    on_focus: if self.focus: app.menu_ville.open()
+                                
+                                MDTextField:
+                                    multiline: True
+                                    pos_hint: {'center_x': .5, 'center_y': .1}
+                                    hint_text: "Message"
+
+                            MDBoxLayout:
+                                orientatin: 'horizontal'
+                                adaptive_height: True
+                                pos_hint: {'center_x': .5, 'center_y': .5}
+                                MDTextButton:
+                                    text: "Options avancées"
+                                    custom_color: get_color_from_hex('#008080')
+                                MDIcon:
+                                    icon: "arrow-down-drop-circle-outline"
+                                    theme_text_color: "Custom"
+                                    text_color: app.theme_cls.primary_color
+
+                            MDRaisedButton:
+                                text: "Démarer"
+                                pos_hint: {"center_x": .5, "center_y": .1}
+                                md_bg_color: self.theme_cls.primary_color
+               

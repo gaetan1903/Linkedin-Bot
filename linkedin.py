@@ -267,6 +267,17 @@ class Linkedin:
 				nom = nom + " " +__nom.capitalize()
 		return nom
 
+	def invitationStatus(self, username):
+		db = sqlite3.connect("__bot.db")
+		cursor = db.cursor()
+		cursor.execute("""
+			UPDATE Cible SET invitation = 0
+			WHERE username = ?
+		""", (username,))
+
+		db.commit()
+		db.close()
+
 
 	@classmethod
 	def extractUsername(self, url):
@@ -279,16 +290,17 @@ class Linkedin:
 
 	def cancelInvitation(self):
 		def retirer():
-			time.sleep(self.ATTENTE_BOUTON)
+			# time.sleep(self.ATTENTE_BOUTON)
 			elem = self.chrome.switch_to.active_element
 
-			btn = elem.find_element_by_xpath("//button//span[text()='Retirer']")
+			btn = elem.find_element_by_xpath("//button//span[text()='Retirer']/parent::button")
 			try:
-				btn.click()
+				b_Id = btn.get_attribute('id')
+				self.chrome.execute_script(f"document.getElementById('{b_Id}').click();")
 			except:
 				pass
 			else:
-				print(f"invitation {username} annuler; duree: {depuis_str.text}")
+				print(f"invitation {username} annulée; duree: {depuis_str.text}")
 			finally:
 				self.chrome.find_element_by_tag_name('body').click()
 
@@ -311,23 +323,32 @@ class Linkedin:
 
 				pr = self.chrome.find_elements_by_xpath("//ul[contains(@class, 'invitation')]//li")
 
-				for block in pr:
+				for block in pr[::-1]:
 					try:
 						link = block.find_element_by_tag_name("a")
 						username = self.extractUsername(link.get_attribute('href'))
-						bouton = block.find_element_by_xpath("//button//span[text()='Retirer']")
+						bouton = block.find_element_by_xpath("//button//span[text()='Retirer']/parent::button")
 						depuis_str = block.find_element_by_tag_name("time")
 						depuis = depuis_str.text.strip().split()
-						nbr_depuis, ref_depuis = depuis[-2], depuis[-1]
-
-						if ref_depuis == 'mois':
-							bouton.click()
+						ref_depuis = depuis[-1]
+						try:
+							nbr_depuis = depuis[-2]
+							int(nbr_depuis)
+						except: 
+							nbr_depuis = 0
+						print(nbr_depuis, ref_depuis)
+						if ref_depuis == ('semaines', 'semaine'):
+							b_Id = bouton.get_attribute('id')
+							self.chrome.execute_script(f"document.getElementById('{b_Id}').click();")
+							time.sleep(self.ATTENTE_BOUTON)
 							retirer()
-						elif ref_depuis == "semaines" and int(nbr_depuis)>=2:
-							bouton.click()
+						elif ref_depuis == "jours" and int(nbr_depuis)>=5:
+							b_Id = bouton.get_attribute('id')
+							self.chrome.execute_script(f"document.getElementById('{b_Id}').click();")
+							time.sleep(self.ATTENTE_BOUTON)
 							retirer()
 						else: 
-							print("Ne pas annuler; duree {depuis_str}")
+							print(f"{username} :: Ne pas annuler; duree: {depuis_str.text}")
 					except Exception as err:
 						print(err)
 						self.chrome.find_element_by_tag_name('body').click()

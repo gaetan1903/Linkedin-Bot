@@ -4,7 +4,6 @@ from config import *
 
 
 
-
 # initialiser un bot linkedin
 linkedin = Linkedin(**CONFIG)
 
