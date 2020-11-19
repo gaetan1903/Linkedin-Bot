@@ -5,14 +5,14 @@ message = """Votre parcours est très intéressant bravo. J'aimerai vous compter
  Je vous souhaite une bonne journée   """
 
 # le mot clé à rechercher
-mot_cle = "Freelancer"
+mot_cle = "Medecin"
 
 # nombres de pages à faire
 # maximum 100
 pages = 2
 
 '''
-Mettre le chiifre representative dans le tableau 
+Mettre le chiffre representative dans le tableau 
 pour la france : ville = ["105015875"]
 Ile de france : ville = ["104246759"]
 pour les deux par exemples: ville = '["105015875", "104246759"]'
