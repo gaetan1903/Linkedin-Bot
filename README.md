@@ -10,4 +10,11 @@ Un génerateur de Bot qui sert à envoyer un message à des personnes sur linked
   
   - Python 3 avec version >= 3.6 
   
-  - Module selenium de python
+  - Module selenium,kivy et kivymd de python
+  
+ 
+ ### Installattion
+ 
+ `python -m pip install -r requirements.txt`
+ 
+ 
