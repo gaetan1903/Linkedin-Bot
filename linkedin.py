@@ -120,6 +120,9 @@ class Linkedin:
 			# si pas dispo, vide alors
 			return []
 
+		# attendre que la page se charge completement
+		while not self.page_has_loaded():
+			pass
 		return section.find_elements_by_tag_name("li")
 		
 
@@ -131,17 +134,21 @@ class Linkedin:
 			except: 
 				self.ecrireLog(f"la balise a n'est pas trouvé dans:\n------- DEBUT HTML -------- {block.get_attribute('outerHTML')}\n ------- FIN HTML --------\n\n\n")
 				continue
-
+			
 			username = self.extractUsername(link.get_property('href'))
 			if username.startswith('?'):
 				continue
-			# prendre le nom complet de la personne
-			nomComplet = link.text
-			if nomComplet.strip() == '':
-				# on essaie de le prendre par l'username
-				nomComplet = self.getName(username)
 
-			print(f"Tour de {nomComplet} as {username}")
+			try:	
+				nomComplet = block.find_element_by_tag_name("h3").find_element_by_class_name("actor-name").text
+			except: 
+				self.ecrireLog(f"la balise h3 n'est pas trouvé dans:\n------- DEBUT HTML -------- {block.get_attribute('outerHTML')}\n ------- FIN HTML --------\n\n\n")
+				nomComplet = self.getName(username)
+			else:
+				if nomComplet.strip() == '':
+					nomComplet = self.getName(username)
+
+			print(f"----> {nomComplet}")
 			try:
 				btn = WebDriverWait(block, 3).until(EC.presence_of_element_located((By.XPATH, "//button[text()='Se connecter']")))
 			except Exception as err:
@@ -290,6 +297,11 @@ class Linkedin:
 		return urllib.parse.unquote(tmpuser[-1]).strip()
 
 
+	def page_has_loaded(self):
+		page_state = self.chrome.execute_script('return document.readyState;')
+		return page_state == 'complete'
+
+
 	def cancelInvitation(self, page):
 		def retirer():
 			time.sleep(self.ATTENTE_BOUTON)
@@ -338,7 +350,7 @@ class Linkedin:
 				print(err)
 				self.ecrireLog(err)
 				pr = []
-			print(len(pr))
+
 			for block in pr:
 
 				try:

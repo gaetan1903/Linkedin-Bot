@@ -9,7 +9,7 @@ mot_cle = "Medecin"
 
 # nombres de pages à faire
 # maximum 100
-pages = 2
+pages = 5
 
 '''
 Mettre le chiffre representative dans le tableau 
@@ -23,7 +23,7 @@ ville = '["104246759"]'
 countInvitBDD = 200
 
 #don't check if true
-forceCheckInvit = True
+forceCheckInvit = False
 
 # debut de page d'invitation
 invitationPage = 1

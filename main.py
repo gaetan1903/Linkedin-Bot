@@ -39,6 +39,7 @@ for page in range(pages):
 
 	# envoyer message aux resultat
 	try:
+		print(len(res))
 		linkedin.send_message_result(res, message)
 	except Exception as err:
 		print(err)
