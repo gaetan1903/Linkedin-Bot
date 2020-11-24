@@ -5,7 +5,7 @@ message = """Votre parcours est très intéressant bravo. J'aimerai vous compter
  Je vous souhaite une bonne journée   """
 
 # le mot clé à rechercher
-mot_cle = "Medecin"
+mot_cle = "tester"
 
 # nombres de pages à faire
 # maximum 100

@@ -150,11 +150,15 @@ class Linkedin:
 
 			print(f"----> {nomComplet}")
 			try:
-				btn = WebDriverWait(block, 3).until(EC.presence_of_element_located((By.XPATH, "//button[text()='Se connecter']")))
+				btn = WebDriverWait(block, 3).until(EC.presence_of_element_located((By.TAG_NAME, "button")))
 			except Exception as err:
 				self.ecrireLog(f"{nomComplet}: Ne peut pas etre envoyée de message\n------- DEBUT HTML -------- {block.get_attribute('outerHTML')}\n ------- FIN HTML --------\n\n\n")
 				block.screenshot(f"log/images/{self.logName}_{nomComplet}.png")
-				continue  
+				continue
+
+			if btn.text.strip() != 'Se connecter': 
+				print("le bouton n'est pas 'Se connecter' :", btn.text)
+				continue 
 
 			if self.verifName(username, message):
 				try:
@@ -186,10 +190,13 @@ class Linkedin:
 					continue 
 
 				time.sleep(self.ATTENTE_BOUTON)
-				if nomComplet.strip() == '':
+
+				try:
+					prenom = elem.find_element_by_id("send-invite-modal").text
+					prenom = prenom.replace("Invitez", "").replace("à rejoindre votre réseau", "").strip()
+				except Exception as err:
+					print(err)
 					prenom = ''
-				else:
-					prenom = nomComplet.split()[0]
 
 				new_message = f"Bonjour {prenom},\n" + message
 
