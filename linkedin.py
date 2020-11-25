@@ -43,6 +43,7 @@ class Linkedin:
 		# AJOUT D'ADRESSES PROXY SI DEFINIT
 		if self.PROXY: 
 			options.add_argument(f'--proxy-server={self.PROXY}')
+			options.add_argument('--disable-gpu')
 		self.chrome = webdriver.Chrome(os.path.abspath('driver\\chromedriver.exe'), options=options)
 		self.chrome.maximize_window()
 
