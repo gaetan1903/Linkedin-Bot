@@ -28,7 +28,7 @@ ville = '["104246759"]'
 countInvitBDD = 200
 
 #don't check if true
-forceCheckInvit = True
+forceCheckInvit = False
 
 # debut de page d'invitation à supprimer
 invitationPage = 1
