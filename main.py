@@ -20,7 +20,7 @@ except Exception as err:
 if linkedin.verifInvitation(countInvitBDD) or forceCheckInvit:
 	linkedin.cancelInvitation(invitationPage)
 
-for page in range(pages):
+for page in range(100):
 	page += 1
 	print(f"Entrant dans la {page} page")
 	try:
@@ -39,7 +39,6 @@ for page in range(pages):
 
 	# envoyer message aux resultat
 	try:
-		print(len(res))
 		linkedin.send_message_result(res, message)
 	except Exception as err:
 		print(err)
@@ -52,3 +51,4 @@ for page in range(pages):
 linkedin.chrome.execute_script("""
 	alert('Tâche terminé')
 """)
+linkedin.chrome.close()

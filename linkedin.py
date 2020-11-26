@@ -15,8 +15,8 @@ class Linkedin:
 		self._initDb()
 		self.logName = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 		# create file 
-		with open("log/"+self.logName+".txt", "w"): pass  
-
+		with open("log/"+self.logName+".txt", "w"): pass
+		self.sendCount = 0
 
 
 	def _config(self):
@@ -32,6 +32,8 @@ class Linkedin:
 			if self.kwargs.get("PAUSE_PAGE") else 3
 		self.INPUT_ATTENTE = self.kwargs.get("INPUT_ATTENTE") \
 			if self.kwargs.get("INPUT_ATTENTE") else 1
+		self.maxInvitations = self.kwargs.get('maxInvitations') \
+			if self.kwargs.get('maxInvitations') else 200 
 
 		# CREATION DOSSIER DE LOG
 		if not os.path.isdir('log'):
@@ -86,6 +88,10 @@ class Linkedin:
 
 
 	def recherche(self, query, **filtre):
+		if self.sendCount >= self.maxInvitations:
+			self.chrome.execute_script("alert('Tâche terminé')")
+			self.chrome.close()
+			exit()
 		# Pour encoder en url le mot cle 
 		# en cas d'espace ou caractere speciaux 
 		query = urllib.parse.quote(query)
@@ -130,6 +136,9 @@ class Linkedin:
 
 	def send_message_result(self, elements, message):
 		for block in elements:
+			if self.sendCount >= self.maxInvitations:
+				print("Nombre d'invitation atteint")
+				break
 			try:
 				link = block.find_element_by_tag_name('a')
 			except: 
@@ -216,7 +225,9 @@ class Linkedin:
 					self.insertName(username, message, nomComplet)
 				except Exception as err: 
 					self.ecrireLog("Probleme en base de donnee: " + str(err))
-				else: self.ecrireLog(f"{username}: envoyé avec succès")
+				else:
+					self.ecrireLog(f"{username}: envoyé avec succès")
+					self.sendCount += 1 
 
 				time.sleep(self.MSG_INTERVAL)
 			else:

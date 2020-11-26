@@ -5,11 +5,9 @@ message = """Votre parcours est très intéressant bravo. J'aimerai vous compter
  Je vous souhaite une bonne journée   """
 
 # le mot clé à rechercher
-mot_cle = "tester"
+mot_cle = "avocat"
 
-# nombres de pages à faire
-# maximum 100
-pages = 5
+
 
 '''
 Mettre le chiffre representative dans le tableau 
@@ -39,6 +37,9 @@ Voci un exemple de Proxy , Metter en None ou False pour desactiver
 PROXY = "23.23.23.23:3128 
 '''
 CONFIG['PROXY'] = None
+
+# max invitations send / instance
+CONFIG['maxInvitations'] = 5
 
 # interval de temps pour chaque message
 CONFIG['MSG_INTERVAL'] = 3
