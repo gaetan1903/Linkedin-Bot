@@ -1,3 +1,11 @@
+database = {
+    'host' : '127.0.0.1',
+    'database' : 'BOT',
+    'user': 'bailti',
+    'password' : '__bailti__'
+}
+
+
 email = "emc324@gmail.com"
 password = "linkedin2020"
 
@@ -5,8 +13,7 @@ message = """Votre parcours est très intéressant bravo. J'aimerai vous compter
  Je vous souhaite une bonne journée   """
 
 # le mot clé à rechercher
-mot_cle = "avocat"
-
+mot_cle = "procureur"
 
 
 '''
@@ -21,9 +28,9 @@ ville = '["104246759"]'
 countInvitBDD = 200
 
 #don't check if true
-forceCheckInvit = False
+forceCheckInvit = True
 
-# debut de page d'invitation
+# debut de page d'invitation à supprimer
 invitationPage = 1
 
 
@@ -39,7 +46,7 @@ PROXY = "23.23.23.23:3128
 CONFIG['PROXY'] = None
 
 # max invitations send / instance
-CONFIG['maxInvitations'] = 5
+CONFIG['maxInvitations'] = 25
 
 # interval de temps pour chaque message
 CONFIG['MSG_INTERVAL'] = 3
@@ -57,4 +64,3 @@ CONFIG['PAUSE_PAGE'] = 3
 
 ## Delai d'attente entre les inputs
 CONFIG['INPUT_ATTENTE'] = 1
-

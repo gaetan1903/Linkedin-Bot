@@ -1,10 +1,13 @@
-import os, re, time, datetime, urllib.parse, sqlite3
+import os, re, time, datetime, urllib.parse
+import mysql.connector 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+
+from config import database
 
 
 
@@ -51,17 +54,17 @@ class Linkedin:
 
 
 	def _initDb(self):
-		db = sqlite3.connect("__bot.db")
+		db = mysql.connector.connect(**database)
 		cursor = db.cursor()
 
 		cursor.execute("""
-			CREATE TABLE IF NOT EXISTS Cible 
-			(
-				id INTEGER PRIMARY KEY AUTOINCREMENT,
-				utilisateur TEXT,
-				message TEXT,
-				nom_complet TEXT,
-				invitation INTEGER DEFAULT 1
+			CREATE TABLE IF NOT EXISTS`Cible` (
+				`id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+				`utilisateur` VARCHAR(50),
+				`nom_complet` VARCHAR(100),
+				`message` TEXT,
+				`invitation` TINYINT NOT NULL DEFAULT 1,
+				 PRIMARY KEY (`id`), INDEX `utilisateur` (`utilisateur`)
 			)
 		""")
 
@@ -89,7 +92,6 @@ class Linkedin:
 
 	def recherche(self, query, **filtre):
 		if self.sendCount >= self.maxInvitations:
-			self.chrome.execute_script("alert('Tâche terminé')")
 			self.chrome.close()
 			exit()
 		# Pour encoder en url le mot cle 
@@ -235,25 +237,25 @@ class Linkedin:
 
 
 	def insertName(self, username, message, nom):
-		db = sqlite3.connect("__bot.db")
+		db = mysql.connector.connect(**database)
 		cursor = db.cursor()
 
 		cursor.execute("""
 			INSERT INTO Cible (utilisateur, message, nom_complet)
-			VALUES (?, ?, ?)
+			VALUES (%s, %s, %s)
 		""", (username, message, nom))
 		db.commit()
 		db.close()
 
 
 	def verifName(self, username, message):
-		db = sqlite3.connect("__bot.db")
+		db = mysql.connector.connect(**database)
 		cursor = db.cursor()
 		cursor.execute("""
 			SELECT 1
 			FROM Cible 
-			WHERE utilisateur = ?
-			AND message = ?
+			WHERE utilisateur = %s
+			AND message = %s
 		""", (username, message))
 
 		res = cursor.fetchall()
@@ -296,11 +298,11 @@ class Linkedin:
 
 
 	def invitationStatus(self, username):
-		db = sqlite3.connect("__bot.db")
+		db = mysql.connector.connect(**database)
 		cursor = db.cursor()
 		cursor.execute("""
 			UPDATE Cible SET invitation = 0
-			WHERE utilisateur = ?
+			WHERE utilisateur = %s
 		""", (username,))
 
 		db.commit()
@@ -387,7 +389,7 @@ class Linkedin:
 	
 
 	def verifInvitation(self, nombre):
-		db = sqlite3.connect("__bot.db")
+		db = mysql.connector.connect(**database)
 		cursor = db.cursor()
 		cursor.execute("""
 			SELECT count(id) FROM Cible
