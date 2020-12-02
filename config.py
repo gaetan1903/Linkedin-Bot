@@ -28,7 +28,7 @@ ville = '["104246759"]'
 countInvitBDD = 200
 
 #don't check if true
-forceCheckInvit = True
+forceCheckInvit = False
 
 # debut de page d'invitation à supprimer
 invitationPage = 1
@@ -46,7 +46,7 @@ PROXY = "23.23.23.23:3128
 CONFIG['PROXY'] = None
 
 # max invitations send / instance
-CONFIG['maxInvitations'] = 25
+CONFIG['maxInvitations'] = 25 
 
 # interval de temps pour chaque message
 CONFIG['MSG_INTERVAL'] = 3
@@ -63,4 +63,5 @@ CONFIG['ATTENTE_BOUTON'] = 2
 CONFIG['PAUSE_PAGE'] = 3
 
 ## Delai d'attente entre les inputs
-CONFIG['INPUT_ATTENTE'] = 1
+CONFIG['INPUT_ATTENTE'] = 1 
+

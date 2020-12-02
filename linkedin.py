@@ -15,7 +15,7 @@ class Linkedin:
 	def __init__(self, **kwargs):
 		self.kwargs = kwargs
 		self._config()
-		self._initDb()
+		self._initDb() 
 		self.logName = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 		# create file 
 		with open("log/"+self.logName+".txt", "w"): pass
@@ -229,7 +229,8 @@ class Linkedin:
 					self.ecrireLog("Probleme en base de donnee: " + str(err))
 				else:
 					self.ecrireLog(f"{username}: envoyé avec succès")
-					self.sendCount += 1 
+					self.sendCount += 1
+					print("Demande envoyées:", self.sendCount)
 
 				time.sleep(self.MSG_INTERVAL)
 			else:
