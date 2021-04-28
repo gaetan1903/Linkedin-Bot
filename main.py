@@ -38,13 +38,22 @@ for page in range(100):
 			continue
 
 	# envoyer message aux resultat
-	try:
-		linkedin.send_message_result(res, message)
-	except Exception as err:
-		print(err)
-		linkedin.ecrireLog(err)
-		linkedin.captureEcran()
-		linkedin.chrome.close()
+	if not CONFIG['ONLY_FOLLOW']:
+		try:
+			linkedin.send_message_result(res, message)
+		except Exception as err:
+			print(err)
+			linkedin.ecrireLog(err)
+			linkedin.captureEcran()
+			linkedin.chrome.close()
+	else:
+		new_res = []
+		for elt in res:
+			try:
+				link = elt.find_element_by_tag_name('a')
+				new_res.append(link.get_property('href'))
+			except: pass 
+		linkedin.suivre(new_res)
 	
 	time.sleep(linkedin.PAUSE_PAGE)
 

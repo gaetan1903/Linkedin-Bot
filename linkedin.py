@@ -1,4 +1,4 @@
-import os, re, time, datetime, urllib.parse
+import os, re, time, datetime, pickle, urllib.parse
 import mysql.connector 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -73,21 +73,51 @@ class Linkedin:
 
 
 
-	def login(self, email, password):
+	def login(self, email, password, use_cookie=True):
 		self.chrome.get('https://www.linkedin.com/login/fr?fromSignIn=true')
 		time.sleep(self.ATTENTE_PAGE)
-		# ciblage des champs necessaire
-		userChamp = self.chrome.find_element_by_id('username')
-		passwordChamp = self.chrome.find_element_by_id('password')
-		loginBouton = self.chrome.find_element_by_xpath("//button[@type='submit']")
-	
-		userChamp.send_keys(email)
-		time.sleep(self.INPUT_ATTENTE)
 
-		passwordChamp.send_keys(password)
-		time.sleep(self.INPUT_ATTENTE)
+		if use_cookie:
+			if os.path.isfile('cookies.pkl'):
+				with open("cookies.pkl", "rb") as fcookies:
+					cookies = pickle.load(fcookies)
+					for cookie in cookies:
+						try:
+							self.chrome.add_cookie(cookie)
+						except:
+							os.remove('cookies.pkl')
+							self.login(use_cookie=False)
+							return
+					self.chrome.get('https://www.linkedin.com/feed')
+					time.sleep(self.ATTENTE_PAGE)
+					if '/feed' not in self.chrome.current_url:
+						self.login(email, password, use_cookie=False)
+			else:
+				self.login(email, password, use_cookie=False)
+				return
 
-		loginBouton.click()
+		else:
+			# ciblage des champs necessaire
+			userChamp = self.chrome.find_element_by_id('username')
+			passwordChamp = self.chrome.find_element_by_id('password')
+			loginBouton = self.chrome.find_element_by_xpath("//button[@type='submit']")
+		
+			userChamp.send_keys(email)
+			time.sleep(self.INPUT_ATTENTE)
+
+			passwordChamp.send_keys(password)
+			time.sleep(self.INPUT_ATTENTE)
+
+			loginBouton.click()
+			while not self.page_has_loaded():
+				pass
+			time.sleep(self.ATTENTE_PAGE)
+			if '/feed' not in self.chrome.current_url:
+				print("Non connected")
+				exit()
+
+		with open("cookies.pkl", "wb") as fcookies:
+			pickle.dump(self.chrome.get_cookies(), fcookies)
 
 
 	def recherche(self, query, **filtre):
@@ -121,19 +151,45 @@ class Linkedin:
 		self.chrome.get(url)
 		time.sleep(self.ATTENTE_PAGE)
 
-		section = self.chrome.find_element_by_xpath("//ul[contains(@class, 'search-result')]")
+		section = self.chrome.find_elements_by_xpath("//ul[contains(@class, 'search_')]")
 		try:
 			# verifier s'il y a dispo
-			verifBut = section.find_elements_by_xpath('//li//button[text()="Se connecter"]')
+			section[0].find_elements_by_xpath('//li//button[text()="Se connecter"]')
 		except: 
 			# si pas dispo, vide alors
-			return []
+			if not self.kwargs.get("ONLY_FOLLOW"):
+				return [] 
 
 		# attendre que la page se charge completement
 		while not self.page_has_loaded():
 			pass
-		return section.find_elements_by_tag_name("li")
+		sec_ret = []
+		for sec in section:
+			sec_ret.extend(sec.find_elements_by_tag_name("li"))
+		return sec_ret
 		
+
+
+	def suivre(self, elements):
+		for link in elements:
+			self.chrome.get(link)
+			while not self.page_has_loaded(): pass
+			time.sleep(self.ATTENTE_PAGE)
+
+			try:
+				WebDriverWait(self.chrome, 3).until(EC.presence_of_element_located((By.XPATH, "//button/span[text()='Plus…']"))).click()
+			except Exception as err:
+				print('Pas de Bouton Plus')
+				continue
+
+			try:
+				WebDriverWait(self.chrome, 3).until(EC.presence_of_element_located((By.XPATH, "//span[text()='Suivre']"))).click()
+			except Exception as err:
+				print('Pas de Bouton Suivre')
+				continue
+			time.sleep(self.ATTENTE_BOUTON)
+			print("fait: " + link)
+
 
 
 	def send_message_result(self, elements, message):

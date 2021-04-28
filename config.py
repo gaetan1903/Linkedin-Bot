@@ -13,7 +13,7 @@ message = """Votre parcours est très intéressant bravo. J'aimerai vous compter
  Je vous souhaite une bonne journée   """
 
 # le mot clé à rechercher
-mot_cle = "procureur"
+mot_cle = "avocat"
 
 
 '''
@@ -44,6 +44,9 @@ Voci un exemple de Proxy , Metter en None ou False pour desactiver
 PROXY = "23.23.23.23:3128 
 '''
 CONFIG['PROXY'] = None
+
+# Abonnement sans invitations 
+CONFIG['ONLY_FOLLOW'] = True
 
 # max invitations send / instance
 CONFIG['maxInvitations'] = 25 
