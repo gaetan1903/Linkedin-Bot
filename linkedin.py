@@ -25,6 +25,8 @@ class Linkedin:
 	def _config(self):
 		self.PROXY = self.kwargs.get("PROXY") \
 			if self.kwargs.get("PROXY") else None
+		self.SUIVI_ATTENTE = self.kwargs.get("SUIVI_ATTENTE") \
+			if self.kwargs.get("SUIVI_ATTENTE") else 3
 		self.MSG_INTERVAL = self.kwargs.get("MSG_INTERVAL") \
 			if self.kwargs.get("MSG_INTERVAL") else 5
 		self.ATTENTE_PAGE = self.kwargs.get("ATTENTE_PAGE") \
@@ -58,7 +60,7 @@ class Linkedin:
 		cursor = db.cursor()
 
 		cursor.execute("""
-			CREATE TABLE IF NOT EXISTS`Cible` (
+			CREATE TABLE IF NOT EXISTS `Cible` (
 				`id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
 				`utilisateur` VARCHAR(50),
 				`nom_complet` VARCHAR(100),
@@ -67,6 +69,17 @@ class Linkedin:
 				 PRIMARY KEY (`id`), INDEX `utilisateur` (`utilisateur`)
 			)
 		""")
+
+		cursor.execute("""
+			CREATE TABLE IF NOT EXISTS `Cible_suivi` (
+				`id` INT(11) NOT NULL AUTO_INCREMENT,
+				`username` VARCHAR(100) NOT NULL,
+				`status` TINYINT(1) NOT NULL DEFAULT '0',
+				PRIMARY KEY (`id`) USING BTREE
+			)
+		""")
+
+
 
 		db.commit()
 		db.close()
@@ -77,7 +90,7 @@ class Linkedin:
 		self.chrome.get('https://www.linkedin.com/login/fr?fromSignIn=true')
 		time.sleep(self.ATTENTE_PAGE)
 
-		if use_cookie:
+		if use_cookie and self.kwargs.get("COOKIE"):
 			if os.path.isfile('cookies.pkl'):
 				with open("cookies.pkl", "rb") as fcookies:
 					cookies = pickle.load(fcookies)
@@ -112,7 +125,7 @@ class Linkedin:
 			while not self.page_has_loaded():
 				pass
 			time.sleep(self.ATTENTE_PAGE)
-			if '/feed' not in self.chrome.current_url:
+			if '/feed' not in self.chrome.current_url and self.kwargs.get("COOKIE"):
 				print("Non connected")
 				exit()
 
@@ -149,29 +162,36 @@ class Linkedin:
 		# les parametres pour l'url
 		url += f"?{reg}keywords={query}&origin=SWITCH_SEARCH_VERTICAL{page}"
 		self.chrome.get(url)
+		while not self.page_has_loaded():
+			pass
 		time.sleep(self.ATTENTE_PAGE)
 
-		section = self.chrome.find_elements_by_xpath("//ul[contains(@class, 'search_')]")
+		# section = self.chrome.find_elements_by_xpath("//ul[contains(@class, 'search_')]")
 		try:
-			# verifier s'il y a dispo
-			section[0].find_elements_by_xpath('//li//button[text()="Se connecter"]')
-		except: 
+			# verifier s'il y a 
+			section = WebDriverWait(self.chrome, 5).until(EC.presence_of_all_elements_located((By.XPATH, '//*[text()="Se connecter"]/ancestor::li')))
+			# section = self.chrome.find_elements_by_xpath('//*[text()="Se connecter"]/ancestor::li')
+		except Exception as err: 
+			print(err)
 			# si pas dispo, vide alors
-			if not self.kwargs.get("ONLY_FOLLOW"):
-				return [] 
+			#if not self.kwargs.get("ONLY_FOLLOW"):
+			return [] 
 
 		# attendre que la page se charge completement
 		while not self.page_has_loaded():
 			pass
-		sec_ret = []
-		for sec in section:
-			sec_ret.extend(sec.find_elements_by_tag_name("li"))
-		return sec_ret
+		# sec_ret = []
+		# for sec in section:
+		# 	sec_ret.extend(sec.find_elements_by_tag_name("li"))
+		return section
 		
 
 
 	def suivre(self, elements):
 		for link in elements:
+			if self.verifCible_suivi(link):
+				print("deja present dans la base")
+				continue
 			self.chrome.get(link)
 			while not self.page_has_loaded(): pass
 			time.sleep(self.ATTENTE_PAGE)
@@ -180,15 +200,18 @@ class Linkedin:
 				WebDriverWait(self.chrome, 3).until(EC.presence_of_element_located((By.XPATH, "//button/span[text()='Plus…']"))).click()
 			except Exception as err:
 				print('Pas de Bouton Plus')
+				self.insertCible_suivi(link, False)
 				continue
 
 			try:
 				WebDriverWait(self.chrome, 3).until(EC.presence_of_element_located((By.XPATH, "//span[text()='Suivre']"))).click()
 			except Exception as err:
 				print('Pas de Bouton Suivre')
+				self.insertCible_suivi(link, False)
 				continue
-			time.sleep(self.ATTENTE_BOUTON)
+			time.sleep(self.SUIVI_ATTENTE)
 			print("fait: " + link)
+			self.insertCible_suivi(link, True)
 
 
 
@@ -305,6 +328,7 @@ class Linkedin:
 		db.close()
 
 
+
 	def verifName(self, username, message):
 		db = mysql.connector.connect(**database)
 		cursor = db.cursor()
@@ -319,6 +343,35 @@ class Linkedin:
 		db.close()
 
 		return True if len(res) == 0 else False
+
+
+	def insertCible_suivi(self, lien, status):
+		if not self.kwargs.get('INSERT_SUIVI'):
+			return
+		db = mysql.connector.connect(**database)
+		cursor = db.cursor()
+
+		cursor.execute("""
+			INSERT INTO Cible_suivi (username, status)
+			VALUES (%s, %s)
+		""", (self.extractUsername(lien), status))
+		db.commit()
+		db.close()
+
+
+	def verifCible_suivi(self, lien):
+		db = mysql.connector.connect(**database)
+		cursor = db.cursor()
+
+		cursor.execute("""
+			SELECT 1 FROM Cible_suivi
+			WHERE username = %s
+		""", (lien,))
+		res = cursor.fetchall()
+		db.commit()
+		db.close()
+		return len(res)
+		
 
 
 	def captureEcran(self, **args):
@@ -372,7 +425,7 @@ class Linkedin:
 		tmpuser = url.split('/')
 		while tmpuser[-1].strip() == '':
 			tmpuser = tmpuser[:-1]
-		return urllib.parse.unquote(tmpuser[-1]).strip()
+		return urllib.parse.unquote(tmpuser[-1].split('?')[0]).strip()
 
 
 	def page_has_loaded(self):

@@ -13,7 +13,7 @@ message = """Votre parcours est très intéressant bravo. J'aimerai vous compter
  Je vous souhaite une bonne journée   """
 
 # le mot clé à rechercher
-mot_cle = "avocat"
+mot_cle = "responsable"
 
 
 '''
@@ -45,6 +45,9 @@ PROXY = "23.23.23.23:3128
 '''
 CONFIG['PROXY'] = None
 
+# utiliser systeme de cookie ou pas
+CONFIG['COOKIE'] = False
+
 # Abonnement sans invitations 
 CONFIG['ONLY_FOLLOW'] = True
 
@@ -67,4 +70,10 @@ CONFIG['PAUSE_PAGE'] = 3
 
 ## Delai d'attente entre les inputs
 CONFIG['INPUT_ATTENTE'] = 1 
+
+# delai d attente entre les profils pour les suivi 
+CONFIG['SUIVI_ATTENTE'] = 3
+
+# Enregistrer dans la base les personnes suivi?
+CONFIG['INSERT_SUIVI'] = True
 
