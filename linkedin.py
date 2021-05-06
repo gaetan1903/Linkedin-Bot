@@ -1,5 +1,6 @@
 import os, re, time, datetime, pickle, urllib.parse
-import mysql.connector 
+import mysql.connector
+from unidecode import unidecode
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
@@ -293,7 +294,8 @@ class Linkedin:
 
 				textarea = elem.find_element_by_id('custom-message')
 				textarea.clear() # On s'assure que c'est bien effacé
-				textarea.send_keys(new_message)
+				# formatage du text pour eviter les emojis
+				textarea.send_keys(unidecode(new_message))
 
 				time.sleep(self.INPUT_ATTENTE)
 				try:
@@ -317,6 +319,8 @@ class Linkedin:
 
 
 	def insertName(self, username, message, nom):
+		if not self.kwargs.get('INSERT_INVITATION'):
+			return
 		db = mysql.connector.connect(**database)
 		cursor = db.cursor()
 
@@ -330,6 +334,8 @@ class Linkedin:
 
 
 	def verifName(self, username, message):
+		if not self.kwargs.get('INSERT_INVITATION'):
+			return True
 		db = mysql.connector.connect(**database)
 		cursor = db.cursor()
 		cursor.execute("""
@@ -360,6 +366,8 @@ class Linkedin:
 
 
 	def verifCible_suivi(self, lien):
+		if not self.kwargs.get('INSERT_SUIVI'):
+			return
 		db = mysql.connector.connect(**database)
 		cursor = db.cursor()
 
@@ -370,7 +378,7 @@ class Linkedin:
 		res = cursor.fetchall()
 		db.commit()
 		db.close()
-		return len(res)
+		return True if len(res) > 0 else False
 		
 
 

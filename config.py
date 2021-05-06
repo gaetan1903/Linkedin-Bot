@@ -10,7 +10,7 @@ email = "emc324@gmail.com"
 password = "linkedin2020"
 
 message = """Votre parcours est très intéressant bravo. J'aimerai vous compter parmi mon réseau. Si vous le souhaitez nous pouvons nous connecter . Je n'ai rien à proposer pour le moment mais qui sait ? peut-être plus tard aurions besoin de partager ?
- Je vous souhaite une bonne journée   """
+ Je vous souhaite une bonne journée"""
 
 # le mot clé à rechercher
 mot_cle = "responsable"
@@ -49,7 +49,7 @@ CONFIG['PROXY'] = None
 CONFIG['COOKIE'] = False
 
 # Abonnement sans invitations 
-CONFIG['ONLY_FOLLOW'] = True
+CONFIG['ONLY_FOLLOW'] = False
 
 # max invitations send / instance
 CONFIG['maxInvitations'] = 25 
@@ -75,5 +75,9 @@ CONFIG['INPUT_ATTENTE'] = 1
 CONFIG['SUIVI_ATTENTE'] = 3
 
 # Enregistrer dans la base les personnes suivi?
-CONFIG['INSERT_SUIVI'] = True
+CONFIG['INSERT_SUIVI'] = False
+
+# Enregistrer dans la base les personnes invités?
+CONFIG['INSERT_INVITATION'] = False
+
 
